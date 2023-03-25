@@ -33,7 +33,6 @@ public class ImageServiceAsync implements ImageService {
 
     @Override
     public ImageResponse saveImages(ImageRequest imageRequest) {
-//        System.out.println(imageRequest);
         ImageResponse response = ImageResponse.builder().build();
         List<CompletableFuture<Void>> futures = imageRequest.getImages().stream().map(imageData ->
                 CompletableFuture.supplyAsync(() -> getImageData(response, imageRequest, imageData), taskExecutor)
@@ -50,13 +49,20 @@ public class ImageServiceAsync implements ImageService {
     }
 
     private void createResponse(ImageResponse response, Image image) {
-        Image savedImage = imageRepository.save(image);
-        response.getImages().add(ReturnImage.builder()
-                .id(savedImage.getId())
-                .url(savedImage.getUrl())
-                .name(savedImage.getName())
-                .build());
-        response.setSuccessImages(response.getSuccessImages() + 1);
+        try {
+            Image savedImage = imageRepository.save(image);
+            response.getImages().add(ReturnImage.builder()
+                    .id(savedImage.getId())
+                    .url(savedImage.getUrl())
+                    .name(savedImage.getName())
+                    .build());
+            response.setSuccessImages(response.getSuccessImages() + 1);
+        } catch (Exception exception) {
+            throw new InvalidImageException(List.of(InvalidImage.builder()
+                            .error("Db exception occured")
+                    .build()));
+        }
+
     }
 
     private ImageData getImageData(ImageResponse response, ImageRequest imageRequest, ImageData imageData) {
